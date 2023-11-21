@@ -15,17 +15,17 @@
 namespace diskann {
 
 template <typename TagT = int> struct Neighbor_Tag {
-  TagT tag;
-  float dist;
+    TagT tag;
+    float dist;
 
-  Neighbor_Tag() = default;
+    Neighbor_Tag() = default;
 
-  Neighbor_Tag(TagT tag, float dist) : tag{tag}, dist{dist} {}
-  inline bool operator<(const Neighbor_Tag &other) const {
-    return (dist < other.dist);
-  }
-  inline bool operator==(const Neighbor_Tag &other) const {
-    return (tag == other.tag);
-  }
+    Neighbor_Tag(TagT tag, float dist) : tag{tag}, dist{dist} {}
+    inline bool operator<(const Neighbor_Tag &other) const {
+        return (dist < other.dist);
+    }
+    inline bool operator==(const Neighbor_Tag &other) const {
+        return (tag == other.tag);
+    }
 };
 } // namespace diskann

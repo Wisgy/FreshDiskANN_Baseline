@@ -16,40 +16,40 @@
 #ifndef EXEC_ENV_OLS
 namespace ANNIndex {
 enum LogLevel {
-  LL_Debug = 0,
-  LL_Info,
-  LL_Status,
-  LL_Warning,
-  LL_Error,
-  LL_Assert,
-  LL_Count
+    LL_Debug = 0,
+    LL_Info,
+    LL_Status,
+    LL_Warning,
+    LL_Error,
+    LL_Assert,
+    LL_Count
 };
 };
 #endif
 
 namespace diskann {
 class ANNStreamBuf : public std::basic_streambuf<char> {
-public:
-  DISKANN_DLLEXPORT explicit ANNStreamBuf(FILE *fp);
-  DISKANN_DLLEXPORT ~ANNStreamBuf();
+  public:
+    DISKANN_DLLEXPORT explicit ANNStreamBuf(FILE *fp);
+    DISKANN_DLLEXPORT ~ANNStreamBuf();
 
-  DISKANN_DLLEXPORT bool is_open() const {
-    return true; // because stdout and stderr are always open.
-  }
-  DISKANN_DLLEXPORT void close();
-  DISKANN_DLLEXPORT virtual int underflow();
-  DISKANN_DLLEXPORT virtual int overflow(int c);
-  DISKANN_DLLEXPORT virtual int sync();
+    DISKANN_DLLEXPORT bool is_open() const {
+        return true; // because stdout and stderr are always open.
+    }
+    DISKANN_DLLEXPORT void close();
+    DISKANN_DLLEXPORT virtual int underflow();
+    DISKANN_DLLEXPORT virtual int overflow(int c);
+    DISKANN_DLLEXPORT virtual int sync();
 
-private:
-  FILE *_fp;
-  char *_buf;
-  int _bufIndex;
-  std::mutex _mutex;
-  ANNIndex::LogLevel _logLevel;
+  private:
+    FILE *_fp;
+    char *_buf;
+    int _bufIndex;
+    std::mutex _mutex;
+    ANNIndex::LogLevel _logLevel;
 
-  int flush();
-  void logImpl(char *str, int numchars);
+    int flush();
+    void logImpl(char *str, int numchars);
 
 // Why the two buffer-sizes? If we are running normally, we are basically
 // interacting with a character output system, so we short-circuit the
@@ -66,12 +66,12 @@ private:
 // This implies calling code _must_ either print std::endl or std::flush
 // to ensure that the message is written immediately.
 #ifdef EXEC_ENV_OLS
-  static const int BUFFER_SIZE = 2048;
+    static const int BUFFER_SIZE = 2048;
 #else
-  static const int BUFFER_SIZE = 0;
+    static const int BUFFER_SIZE = 0;
 #endif
 
-  ANNStreamBuf(const ANNStreamBuf &);
-  ANNStreamBuf &operator=(const ANNStreamBuf &);
+    ANNStreamBuf(const ANNStreamBuf &);
+    ANNStreamBuf &operator=(const ANNStreamBuf &);
 };
 } // namespace diskann

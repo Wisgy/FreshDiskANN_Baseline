@@ -25,20 +25,20 @@
 #include "memory_mapper.h"
 
 int main(int argc, char **argv) {
-  if (argc < 3) {
-    diskann::cout << "Correct usage : " << argv[0]
-                  << " <input_file_name> <save_file_prefix>" << std::endl;
-    exit(-1);
-  }
+    if (argc < 3) {
+        diskann::cout << "Correct usage : " << argv[0]
+                      << " <input_file_name> <save_file_prefix>" << std::endl;
+        exit(-1);
+    }
 
-  std::string input(argv[1]);
-  std::string output(argv[2]);
+    std::string input(argv[1]);
+    std::string output(argv[2]);
 
-  float *data = nullptr;
-  size_t in_num, in_dim, in_aligned_dim;
-  diskann::load_aligned_bin<float>(input.c_str(), data, in_num, in_dim,
-                                   in_aligned_dim);
-  diskann::save_bin<float>(output + ".bin", data, in_num, in_aligned_dim);
+    float *data = nullptr;
+    size_t in_num, in_dim, in_aligned_dim;
+    diskann::load_aligned_bin<float>(input.c_str(), data, in_num, in_dim,
+                                     in_aligned_dim);
+    diskann::save_bin<float>(output + ".bin", data, in_num, in_aligned_dim);
 
-  return 0;
+    return 0;
 }
