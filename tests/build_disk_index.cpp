@@ -9,15 +9,15 @@
 #include "partition_and_pq.h"
 #include "utils.h"
 
-template<typename T>
-bool build_index(const char* dataFilePath, const char* indexFilePath,
-                 const char* indexBuildParameters, diskann::Metric m,
+template <typename T>
+bool build_index(const char *dataFilePath, const char *indexFilePath,
+                 const char *indexBuildParameters, diskann::Metric m,
                  bool singleFile) {
   return diskann::build_disk_index<T>(dataFilePath, indexFilePath,
                                       indexBuildParameters, m, singleFile);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 11) {
     diskann::cout << "Usage: " << argv[0]
                   << " <data_type (float/int8/uint8)>  <data_file.bin>"
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
                          " " + std::string(argv[6]) + " " +
                          std::string(argv[7]) + " " + std::string(argv[8]);
     std::string dist_metric(argv[9]);
-    bool        single_file_index = std::atoi(argv[10]) != 0;
+    bool single_file_index = std::atoi(argv[10]) != 0;
 
     diskann::Metric m =
         dist_metric == "cosine" ? diskann::Metric::COSINE : diskann::Metric::L2;

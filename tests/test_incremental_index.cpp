@@ -18,11 +18,11 @@
 
 #include "memory_mapper.h"
 
-template<typename T>
-int build_incremental_index(const std::string& data_path, const unsigned L,
+template <typename T>
+int build_incremental_index(const std::string &data_path, const unsigned L,
                             const unsigned R, const float alpha,
-                            const std::string& save_path,
-                            const unsigned     num_incr) {
+                            const std::string &save_path,
+                            const unsigned num_incr) {
   diskann::Parameters paras;
   paras.Set<unsigned>("L", L);
   paras.Set<unsigned>("R", R);
@@ -31,7 +31,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   paras.Set<bool>("saturate_graph", false);
   paras.Set<unsigned>("num_rnds", 2);
 
-  T*     data_load = NULL;
+  T *data_load = NULL;
   size_t num_points, dim, aligned_dim;
 
   diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
@@ -40,7 +40,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   typedef uint32_t TagT;
 
   diskann::Index<T, TagT> index(diskann::L2, dim, num_points, true,
-                                false,  // single file index
+                                false, // single file index
                                 true);
   {
     std::vector<TagT> tags(num_points - num_incr);
@@ -55,8 +55,8 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   {
     diskann::Timer timer;
 #pragma omp parallel for
-    for (_s64 i = num_points - num_incr; i < (_s64) num_points; ++i) {
-      index.insert_point(data_load + i * aligned_dim, paras, (TagT) i);
+    for (_s64 i = num_points - num_incr; i < (_s64)num_points; ++i) {
+      index.insert_point(data_load + i * aligned_dim, paras, (TagT)i);
     }
     diskann::cout << "Incremental time: " << timer.elapsed() / 1000 << "ms\n";
     auto save_path_inc = save_path + ".inc";
@@ -65,7 +65,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
 
   tsl::robin_set<unsigned> delete_list;
   while (delete_list.size() < num_incr)
-    delete_list.insert((uint32_t) (rand() % num_points));
+    delete_list.insert((uint32_t)(rand() % num_points));
   diskann::cout << "Deleting " << delete_list.size() << " elements"
                 << std::endl;
   std::vector<unsigned> delete_vector;
@@ -97,10 +97,10 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
 
     diskann::Timer timer;
 #pragma omp parallel for
-    for (_s64 p = 0; p < (_s64) reinsert_vec.size(); p++) {
-      index.insert_point(
-          data_load + (size_t) (reinsert_vec[p]) * (size_t) aligned_dim, paras,
-          (reinsert_vec[p]));
+    for (_s64 p = 0; p < (_s64)reinsert_vec.size(); p++) {
+      index.insert_point(data_load +
+                             (size_t)(reinsert_vec[p]) * (size_t)aligned_dim,
+                         paras, (reinsert_vec[p]));
     }
     diskann::cout << "Re-incremental time: " << timer.elapsed() / 1000
                   << "ms\n";
@@ -114,7 +114,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 8) {
     diskann::cout << "Correct usage: " << argv[0]
                   << " type[int8/uint8/float] data_file L R alpha "
@@ -122,11 +122,11 @@ int main(int argc, char** argv) {
     exit(-1);
   }
 
-  unsigned    L = (unsigned) atoi(argv[3]);
-  unsigned    R = (unsigned) atoi(argv[4]);
-  float       alpha = (float) std::atof(argv[5]);
+  unsigned L = (unsigned)atoi(argv[3]);
+  unsigned R = (unsigned)atoi(argv[4]);
+  float alpha = (float)std::atof(argv[5]);
   std::string save_path(argv[6]);
-  unsigned    num_incr = (unsigned) atoi(argv[7]);
+  unsigned num_incr = (unsigned)atoi(argv[7]);
 
   if (std::string(argv[1]) == std::string("int8"))
     build_incremental_index<int8_t>(argv[2], L, R, alpha, save_path, num_incr);

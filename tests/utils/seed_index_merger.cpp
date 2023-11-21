@@ -3,22 +3,22 @@
 
 #include "utils.h"
 
+#include "tsl/robin_set.h"
 #include <algorithm>
-#include <numeric>
 #include <cassert>
+#include <numeric>
 #include <random>
 #include <thread>
 #include <vector>
-#include "tsl/robin_set.h"
 
 #define ENTRY_POINT 52292725
 //#define ENTRY_POINT 123742
 
-template<typename T, typename TagT = uint32_t>
+template <typename T, typename TagT = uint32_t>
 void dump_to_disk(const T *all_pts, const uint64_t ndims,
-                  const std::string           &filename,
+                  const std::string &filename,
                   const std::vector<uint32_t> &tags) {
-  T    *new_data = new T[ndims * tags.size()];
+  T *new_data = new T[ndims * tags.size()];
   TagT *new_tags = new TagT[tags.size()];
 
   std::string tag_filename = filename + ".tags";
@@ -41,16 +41,16 @@ void dump_to_disk(const T *all_pts, const uint64_t ndims,
   delete new_tags;
 }
 
-template<typename T>
+template <typename T>
 void run(const uint32_t base_count, const uint32_t num_mem_indices,
          const uint32_t delete_count, const uint32_t incr_count,
          const uint32_t num_cycles, const std::string &in_file,
          const std::string &out_prefix, const std::string &deleted_tags_file) {
   // random number generator
   std::random_device dev;
-  std::mt19937       rng(dev());
+  std::mt19937 rng(dev());
 
-  T       *all_points = nullptr;
+  T *all_points = nullptr;
   uint64_t npts, ndims;
   diskann::load_bin(in_file, all_points, npts, ndims);
   diskann::cout << "Loaded " << npts << " pts x " << ndims << " dims\n";
@@ -82,10 +82,10 @@ void run(const uint32_t base_count, const uint32_t num_mem_indices,
 
   std::vector<uint32_t> delete_vec;
   std::vector<uint32_t> insert_vec;
-  uint32_t              count = 0;
+  uint32_t count = 0;
   while (count++ < num_cycles) {
-    std::random_device                    rd;
-    std::mt19937                          gen(rd());
+    std::random_device rd;
+    std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis(0, 1);
 
     new_active_tags.clear();
@@ -94,8 +94,8 @@ void run(const uint32_t base_count, const uint32_t num_mem_indices,
     delete_vec.clear();
     insert_vec.clear();
 
-    float active_tags_sampling_rate = (float) ((std::min)(
-        (1.0 * delete_count) / (1.0 * ((double) active_tags.size())), 1.0));
+    float active_tags_sampling_rate = (float)((std::min)(
+        (1.0 * delete_count) / (1.0 * ((double)active_tags.size())), 1.0));
 
     for (auto iter = active_tags.begin(); iter != active_tags.end(); iter++) {
       if (dis(gen) < active_tags_sampling_rate && *iter != ENTRY_POINT) {
@@ -105,8 +105,8 @@ void run(const uint32_t base_count, const uint32_t num_mem_indices,
         new_active_tags.insert(*iter);
     }
 
-    float inactive_tags_sampling_rate = (float) ((std::min)(
-        (1.0 * incr_count) / (1.0 * ((double) inactive_tags.size())), 1.0));
+    float inactive_tags_sampling_rate = (float)((std::min)(
+        (1.0 * incr_count) / (1.0 * ((double)inactive_tags.size())), 1.0));
 
     for (auto iter = inactive_tags.begin(); iter != inactive_tags.end();
          iter++) {
@@ -133,7 +133,7 @@ void run(const uint32_t base_count, const uint32_t num_mem_indices,
         ROUND_UP(insert_vec.size(), num_mem_indices) / num_mem_indices;
 
     std::vector<std::vector<uint32_t>> mem_tags(num_mem_indices);
-    uint64_t                           cur_start = 0;
+    uint64_t cur_start = 0;
     for (uint64_t i = 0; i < num_mem_indices; i++) {
       std::vector<uint32_t> &ith_tags = mem_tags[i];
       uint64_t new_start = std::min(cur_start + mem_count, insert_vec.size());
@@ -184,8 +184,8 @@ int main(int argc, char **argv) {
   }
   diskann::cout.setf(std::ios::unitbuf);
 
-  int            arg_no = 1;
-  std::string    index_type = argv[arg_no++];
+  int arg_no = 1;
+  std::string index_type = argv[arg_no++];
   const uint32_t base_count = std::atoi(argv[arg_no++]);
   diskann::cout << "# base points : " << base_count << "\n";
   const uint32_t num_mem_indices = std::atoi(argv[arg_no++]);

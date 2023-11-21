@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include "partition_and_pq.h"
 #include <index.h>
 #include <math_utils.h>
-#include "partition_and_pq.h"
 
 // DEPRECATED: NEED TO REPROGRAM
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   auto s = std::chrono::high_resolution_clock::now();
 
   if (argc != 8) {

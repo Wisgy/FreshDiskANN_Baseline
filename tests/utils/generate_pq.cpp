@@ -6,9 +6,9 @@
 
 #define KMEANS_ITERS_FOR_PQ 15
 
-template<typename T>
-bool generate_pq(const std::string& data_path,
-                 const std::string& index_prefix_path,
+template <typename T>
+bool generate_pq(const std::string &data_path,
+                 const std::string &index_prefix_path,
                  const size_t num_pq_centers, const size_t num_pq_chunks,
                  const float sampling_rate) {
   std::string pq_pivots_path = index_prefix_path + "_pq_pivots.bin";
@@ -17,17 +17,17 @@ bool generate_pq(const std::string& data_path,
 
   // generates random sample and sets it to train_data and updates train_size
   size_t train_size, train_dim;
-  float* train_data;
+  float *train_data;
   gen_random_slice<T>(data_path, sampling_rate, train_data, train_size,
                       train_dim);
   diskann::cout << "For computing pivots, loaded sample data of size "
                 << train_size << std::endl;
 
-  generate_pq_pivots(train_data, train_size, (_u32) train_dim,
-                     (_u32) num_pq_centers, (_u32) num_pq_chunks,
+  generate_pq_pivots(train_data, train_size, (_u32)train_dim,
+                     (_u32)num_pq_centers, (_u32)num_pq_chunks,
                      KMEANS_ITERS_FOR_PQ, pq_pivots_path);
-  generate_pq_data_from_pivots<T>(data_path, (_u32) num_pq_centers,
-                                  (_u32) num_pq_chunks, pq_pivots_path,
+  generate_pq_data_from_pivots<T>(data_path, (_u32)num_pq_centers,
+                                  (_u32)num_pq_chunks, pq_pivots_path,
                                   pq_compressed_vectors_path);
 
   delete[] train_data;
@@ -35,7 +35,7 @@ bool generate_pq(const std::string& data_path,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 6) {
     diskann::cout
         << "Usage: \n"
@@ -46,9 +46,9 @@ int main(int argc, char** argv) {
   } else {
     const std::string data_path(argv[2]);
     const std::string index_prefix_path(argv[3]);
-    const size_t      num_pq_centers = 256;
-    const size_t      num_pq_chunks = (size_t) atoi(argv[4]);
-    const float       sampling_rate = (float) atof(argv[5]);
+    const size_t num_pq_centers = 256;
+    const size_t num_pq_chunks = (size_t)atoi(argv[4]);
+    const float sampling_rate = (float)atof(argv[5]);
 
     if (std::string(argv[1]) == std::string("float"))
       generate_pq<float>(data_path, index_prefix_path, num_pq_centers,

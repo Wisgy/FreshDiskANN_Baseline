@@ -9,11 +9,10 @@
 #include <string.h>
 #include <time.h>
 #include <timer.h>
-#include <string.h>
 
 #include "aux_utils.h"
-#include "utils.h"
 #include "tsl/robin_set.h"
+#include "utils.h"
 
 #ifndef _WINDOWS
 #include <sys/mman.h>
@@ -23,22 +22,22 @@
 
 #include "memory_mapper.h"
 
-template<typename T, typename TagT>
+template <typename T, typename TagT>
 void search_kernel(
-    T* query, size_t query_num, size_t query_aligned_dim, const int recall_at,
-    std::vector<_u64> Lvec, diskann::Index<T, TagT>& index,
-    const std::string&       truthset_file,
+    T *query, size_t query_num, size_t query_aligned_dim, const int recall_at,
+    std::vector<_u64> Lvec, diskann::Index<T, TagT> &index,
+    const std::string &truthset_file,
     tsl::robin_set<unsigned> active_tags = tsl::robin_set<unsigned>()) {
-  unsigned* gt_ids = NULL;
-  unsigned* gt_tags = NULL;
-  float*    gt_dists = NULL;
-  size_t    gt_num, gt_dim;
+  unsigned *gt_ids = NULL;
+  unsigned *gt_tags = NULL;
+  float *gt_dists = NULL;
+  size_t gt_num, gt_dim;
   diskann::load_truthset(truthset_file, gt_ids, gt_dists, gt_num, gt_dim,
                          &gt_tags);
 
-  float*    query_result_dists = new float[recall_at * query_num];
-  unsigned* query_result_ids = new unsigned[recall_at * query_num];
-  TagT*     query_result_tags = new TagT[recall_at * query_num];
+  float *query_result_dists = new float[recall_at * query_num];
+  unsigned *query_result_ids = new unsigned[recall_at * query_num];
+  TagT *query_result_tags = new TagT[recall_at * query_num];
   memset(query_result_dists, 0, sizeof(float) * recall_at * query_num);
   memset(query_result_tags, 0, sizeof(TagT) * recall_at * query_num);
   memset(query_result_ids, 0, sizeof(unsigned) * recall_at * query_num);
@@ -62,9 +61,9 @@ void search_kernel(
     _u64 L = Lvec[test_id];
     auto s = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for
-    for (int64_t i = 0; i < (int64_t) query_num; i++) {
+    for (int64_t i = 0; i < (int64_t)query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
-      index.search_with_tags(query + i * query_aligned_dim, recall_at, (_u32) L,
+      index.search_with_tags(query + i * query_aligned_dim, recall_at, (_u32)L,
                              query_result_tags + i * recall_at,
                              query_result_dists + i * recall_at);
       auto qe = std::chrono::high_resolution_clock::now();
@@ -75,26 +74,26 @@ void search_kernel(
     auto e = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> diff = e - s;
-    float                         qps = (float) (query_num / diff.count());
+    float qps = (float)(query_num / diff.count());
 
     float recall;
     if (active_tags.size() > 0) {
-      recall = (float) diskann::calculate_recall(
-          (_u32) query_num, gt_ids, gt_dists, (_u32) gt_dim, query_result_tags,
-          (_u32) recall_at, (_u32) recall_at, active_tags);
+      recall = (float)diskann::calculate_recall(
+          (_u32)query_num, gt_ids, gt_dists, (_u32)gt_dim, query_result_tags,
+          (_u32)recall_at, (_u32)recall_at, active_tags);
     } else {
-      recall = (float) diskann::calculate_recall(
-          (_u32) query_num, gt_ids, gt_dists, (_u32) gt_dim, query_result_tags,
-          (_u32) recall_at, (_u32) recall_at);
+      recall = (float)diskann::calculate_recall(
+          (_u32)query_num, gt_ids, gt_dists, (_u32)gt_dim, query_result_tags,
+          (_u32)recall_at, (_u32)recall_at);
     }
 
     std::sort(latency_stats.begin(), latency_stats.end());
     diskann::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(18)
                   << std::accumulate(latency_stats.begin(), latency_stats.end(),
                                      0) /
-                         (float) query_num
+                         (float)query_num
                   << std::setw(15)
-                  << (float) latency_stats[(_u64) (0.999 * query_num)]
+                  << (float)latency_stats[(_u64)(0.999 * query_num)]
                   << std::setw(12) << recall << std::endl;
   }
   delete[] query_result_dists;
@@ -102,15 +101,15 @@ void search_kernel(
   delete[] query_result_tags;
 }
 
-template<typename T, typename TagT>
-int build_incremental_index(const std::string& data_path,
-                            const std::string& memory_index_file,
+template <typename T, typename TagT>
+int build_incremental_index(const std::string &data_path,
+                            const std::string &memory_index_file,
                             const unsigned L, const unsigned R,
                             const unsigned C, const unsigned num_rnds,
-                            const float alpha, const std::string& save_path,
+                            const float alpha, const std::string &save_path,
                             const unsigned num_cycles, int fraction,
-                            const std::string& query_file,
-                            const std::string& truthset_file,
+                            const std::string &query_file,
+                            const std::string &truthset_file,
                             const int recall_at, std::vector<_u64> Lvec) {
   diskann::Parameters paras;
   paras.Set<unsigned>("L", L);
@@ -119,7 +118,7 @@ int build_incremental_index(const std::string& data_path,
   paras.Set<float>("alpha", alpha);
   paras.Set<unsigned>("num_rnds", num_rnds);
 
-  T*     data_load = NULL;
+  T *data_load = NULL;
   size_t num_points, dim, aligned_dim;
 
   diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
@@ -131,7 +130,7 @@ int build_incremental_index(const std::string& data_path,
   auto tag_path = memory_index_file + ".tags";
   index.load(memory_index_file.c_str());
   diskann::cout << "Loaded index and tags and data" << std::endl;
-  T*     query = NULL;
+  T *query = NULL;
   size_t query_num, query_dim, query_aligned_dim;
   diskann::load_aligned_bin<T>(query_file, query, query_num, query_dim,
                                query_aligned_dim);
@@ -140,7 +139,7 @@ int build_incremental_index(const std::string& data_path,
                 truthset_file);
   unsigned i = 0;
   while (i < num_cycles) {
-    size_t                   delete_size = (num_points / 100) * fraction;
+    size_t delete_size = (num_points / 100) * fraction;
     tsl::robin_set<unsigned> delete_set;
     while (delete_set.size() < delete_size)
       delete_set.insert(rand() % num_points);
@@ -186,7 +185,7 @@ int build_incremental_index(const std::string& data_path,
 #pragma omp parallel for
       for (size_t i = 0; i < delete_vector.size(); i++) {
         unsigned p = delete_vector[i];
-        index.insert_point(data_load + (size_t) p * (size_t) aligned_dim, paras,
+        index.insert_point(data_load + (size_t)p * (size_t)aligned_dim, paras,
                            p);
       }
       diskann::cout << "Re-incremental time: " << timer.elapsed() / 1000
@@ -202,7 +201,7 @@ int build_incremental_index(const std::string& data_path,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc < 16) {
     diskann::cout
         << "Correct usage: " << argv[0]
@@ -216,18 +215,18 @@ int main(int argc, char** argv) {
     exit(-1);
   }
 
-  int               arg_no = 4;
-  unsigned          L = (unsigned) atoi(argv[arg_no++]);
-  unsigned          R = (unsigned) atoi(argv[arg_no++]);
-  unsigned          C = (unsigned) atoi(argv[arg_no++]);
-  float             alpha = (float) std::atof(argv[arg_no++]);
-  unsigned          num_rnds = (unsigned) std::atoi(argv[arg_no++]);
-  std::string       save_path(argv[arg_no++]);
-  unsigned          num_cycles = (unsigned) atoi(argv[arg_no++]);
-  int               fraction = (int) atoi(argv[arg_no++]);
-  std::string       query_file(argv[arg_no++]);
-  std::string       truthset(argv[arg_no++]);
-  int               recall_at = (int) std::atoi(argv[arg_no++]);
+  int arg_no = 4;
+  unsigned L = (unsigned)atoi(argv[arg_no++]);
+  unsigned R = (unsigned)atoi(argv[arg_no++]);
+  unsigned C = (unsigned)atoi(argv[arg_no++]);
+  float alpha = (float)std::atof(argv[arg_no++]);
+  unsigned num_rnds = (unsigned)std::atoi(argv[arg_no++]);
+  std::string save_path(argv[arg_no++]);
+  unsigned num_cycles = (unsigned)atoi(argv[arg_no++]);
+  int fraction = (int)atoi(argv[arg_no++]);
+  std::string query_file(argv[arg_no++]);
+  std::string truthset(argv[arg_no++]);
+  int recall_at = (int)std::atoi(argv[arg_no++]);
   std::vector<_u64> Lvec;
 
   for (int ctr = 15; ctr < argc; ctr++) {

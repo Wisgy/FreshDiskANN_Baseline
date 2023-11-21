@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include "utils.h"
 #include <index.h>
+#include <numeric>
 #include <omp.h>
 #include <string.h>
-#include <numeric>
-#include "utils.h"
 
 #ifndef _WINDOWS
 #include <sys/mman.h>
@@ -16,18 +16,18 @@
 
 #include "memory_mapper.h"
 
-template<typename T>
-int build_in_memory_index(const std::string& data_path,
-                          const std::string& tags_file, const unsigned R,
+template <typename T>
+int build_in_memory_index(const std::string &data_path,
+                          const std::string &tags_file, const unsigned R,
                           const unsigned L, const float alpha,
-                          const std::string& save_path,
+                          const std::string &save_path,
                           const unsigned num_threads, bool dynamic_index,
                           bool single_file_index, diskann::Metric distMetric) {
   diskann::Parameters paras;
   paras.Set<unsigned>("R", R);
   paras.Set<unsigned>("L", L);
   paras.Set<unsigned>(
-      "C", 750);  // maximum candidate set size during pruning procedure
+      "C", 750); // maximum candidate set size during pruning procedure
   paras.Set<float>("alpha", alpha);
   paras.Set<bool>("saturate_graph", 0);
   paras.Set<unsigned>("num_threads", num_threads);
@@ -46,7 +46,7 @@ int build_in_memory_index(const std::string& data_path,
   // TODO: Should not hard code enable tags.
   diskann::Index<T, TagT> index(distMetric, data_dim, data_num, dynamic_index,
                                 single_file_index,
-                                true);  // enable_tags forced to true!
+                                true); // enable_tags forced to true!
   if (dynamic_index) {
     std::vector<TagT> tags(data_num);
     std::iota(tags.begin(), tags.end(), 0);
@@ -73,7 +73,7 @@ int build_in_memory_index(const std::string& data_path,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 12) {
     diskann::cout
         << "Usage: " << argv[0]
@@ -88,20 +88,20 @@ int main(int argc, char** argv) {
 
   int arg_no = 2;
 
-  const std::string    data_path(argv[arg_no++]);
-  const std::string    tags_file(argv[arg_no++]);
-  const std::string    save_path(argv[arg_no++]);
-  bool                 dynamic_index = (bool) atoi(argv[arg_no++]);
-  bool                 single_file_index = (bool) atoi(argv[arg_no++]);
-  const unsigned       R = (unsigned) atoi(argv[arg_no++]);
-  const unsigned       L = (unsigned) atoi(argv[arg_no++]);
-  const float          alpha = (float) atof(argv[arg_no++]);
-  const unsigned       num_threads = (unsigned) atoi(argv[arg_no++]);
-  const std::string    dist_metric_str = argv[arg_no++];
+  const std::string data_path(argv[arg_no++]);
+  const std::string tags_file(argv[arg_no++]);
+  const std::string save_path(argv[arg_no++]);
+  bool dynamic_index = (bool)atoi(argv[arg_no++]);
+  bool single_file_index = (bool)atoi(argv[arg_no++]);
+  const unsigned R = (unsigned)atoi(argv[arg_no++]);
+  const unsigned L = (unsigned)atoi(argv[arg_no++]);
+  const float alpha = (float)atof(argv[arg_no++]);
+  const unsigned num_threads = (unsigned)atoi(argv[arg_no++]);
+  const std::string dist_metric_str = argv[arg_no++];
   enum diskann::Metric distMetric =
       dist_metric_str == "cosine"
           ? diskann::Metric::COSINE
-          : diskann::Metric::L2;  // set to l2 even if something else is chosen
+          : diskann::Metric::L2; // set to l2 even if something else is chosen
 
   if (dist_metric_str != "l2" && distMetric == diskann::Metric::L2) {
     std::cerr << "Unknown distance metric " << argv[argc - 1]

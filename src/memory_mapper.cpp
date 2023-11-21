@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "logger.h"
 #include "memory_mapper.h"
+#include "logger.h"
 #include <iostream>
 #include <sstream>
 
 using namespace diskann;
 
-MemoryMapper::MemoryMapper(const std::string& filename)
-    : MemoryMapper(filename.c_str()) {
-}
+MemoryMapper::MemoryMapper(const std::string &filename)
+    : MemoryMapper(filename.c_str()) {}
 
-MemoryMapper::MemoryMapper(const char* filename) {
+MemoryMapper::MemoryMapper(const char *filename) {
 #ifndef _WINDOWS
   _fd = open(filename, O_RDONLY);
   if (_fd <= 0) {
@@ -26,7 +25,7 @@ MemoryMapper::MemoryMapper(const char* filename) {
   }
   _fileSize = sb.st_size;
   diskann::cout << "File Size: " << _fileSize << std::endl;
-  _buf = (char*) mmap(NULL, _fileSize, PROT_READ, MAP_PRIVATE, _fd, 0);
+  _buf = (char *)mmap(NULL, _fileSize, PROT_READ, MAP_PRIVATE, _fd, 0);
 #else
   _bareFile = CreateFileA(filename, GENERIC_READ | GENERIC_EXECUTE, 0, NULL,
                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -47,7 +46,7 @@ MemoryMapper::MemoryMapper(const char* filename) {
     throw std::exception(message.str().c_str());
   }
 
-  _buf = (char*) MapViewOfFile(_fd, FILE_MAP_READ, 0, 0, 0);
+  _buf = (char *)MapViewOfFile(_fd, FILE_MAP_READ, 0, 0, 0);
   if (_buf == nullptr) {
     std::ostringstream message;
     message << "MapViewOfFile(" << filename
@@ -58,20 +57,16 @@ MemoryMapper::MemoryMapper(const char* filename) {
 
   LARGE_INTEGER fSize;
   if (TRUE == GetFileSizeEx(_bareFile, &fSize)) {
-    _fileSize = fSize.QuadPart;  // take the 64-bit value
+    _fileSize = fSize.QuadPart; // take the 64-bit value
     diskann::cout << "File Size: " << _fileSize << std::endl;
   } else {
     std::cerr << "Failed to get size of file " << filename << std::endl;
   }
 #endif
 }
-char* MemoryMapper::getBuf() {
-  return _buf;
-}
+char *MemoryMapper::getBuf() { return _buf; }
 
-size_t MemoryMapper::getFileSize() {
-  return _fileSize;
-}
+size_t MemoryMapper::getFileSize() { return _fileSize; }
 
 MemoryMapper::~MemoryMapper() {
 #ifndef _WINDOWS

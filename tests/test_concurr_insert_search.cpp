@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <index.h>
 #include <future>
+#include <index.h>
 #include <numeric>
 #include <omp.h>
 #include <string.h>
@@ -19,14 +19,14 @@
 
 #include "memory_mapper.h"
 
-template<typename T, typename TagT>
-void search_kernel(T* query, size_t query_num, size_t query_aligned_dim,
+template <typename T, typename TagT>
+void search_kernel(T *query, size_t query_num, size_t query_aligned_dim,
                    const int recall_at, std::vector<_u64> Lvec,
-                   diskann::Index<T, TagT>& index) {
-  uint32_t* results = new uint32_t[recall_at * query_num];
+                   diskann::Index<T, TagT> &index) {
+  uint32_t *results = new uint32_t[recall_at * query_num];
   for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
 #pragma omp parallel for num_threads(8)
-    for (int64_t i = 0; i < (int64_t) query_num; i++) {
+    for (int64_t i = 0; i < (int64_t)query_num; i++) {
       _u64 L = Lvec[test_id];
       index.search(query + i * query_aligned_dim, recall_at, L,
                    results + i * recall_at);
@@ -35,9 +35,9 @@ void search_kernel(T* query, size_t query_num, size_t query_aligned_dim,
   delete[] results;
 }
 
-template<typename T, typename TagT>
-void insert_kernel(T* data_load, diskann::Index<T, TagT>& index,
-                   diskann::Parameters& parameters, size_t num_points,
+template <typename T, typename TagT>
+void insert_kernel(T *data_load, diskann::Index<T, TagT> &index,
+                   diskann::Parameters &parameters, size_t num_points,
                    size_t aligned_dim, unsigned start) {
   diskann::cout << "Insertion thread" << std::endl;
   diskann::Timer timer;
@@ -52,12 +52,12 @@ void insert_kernel(T* data_load, diskann::Index<T, TagT>& index,
   diskann::cout << "Insert time : " << time_secs << " s\n"
                 << "Inserts/sec : " << num_points / time_secs << std::endl;
 }
-template<typename T>
-int build_incremental_index(const std::string& data_path, const unsigned L,
+template <typename T>
+int build_incremental_index(const std::string &data_path, const unsigned L,
                             const unsigned R, const unsigned C,
                             const unsigned num_rnds, const float alpha,
-                            const std::string& save_path,
-                            const std::string& query_file, const int recall_at,
+                            const std::string &save_path,
+                            const std::string &query_file, const int recall_at,
                             std::vector<_u64> Lvec) {
   diskann::Parameters paras;
   paras.Set<unsigned>("L", L);
@@ -67,7 +67,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   paras.Set<unsigned>("num_rnds", num_rnds);
   paras.Set<bool>("saturate_graph", 0);
 
-  T*     data_load = NULL;
+  T *data_load = NULL;
   size_t num_points, dim, aligned_dim;
 
   diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
@@ -75,7 +75,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
 
   unsigned num_prebuilt = 1;
 
-  typedef int             TagT;
+  typedef int TagT;
   diskann::Index<T, TagT> index(diskann::L2, dim, num_points, 1, true, false);
 
   {
@@ -88,7 +88,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   }
 
   diskann::cout << "Saved batch build" << std::endl;
-  T*     query = NULL;
+  T *query = NULL;
   size_t query_num, query_dim, query_aligned_dim;
 
   diskann::load_aligned_bin<T>(query_file, query, query_num, query_dim,
@@ -124,7 +124,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc < 12) {
     diskann::cout << "Correct usage: " << argv[0]
                   << " type[int8/uint8/float] data_file L R C alpha "
@@ -134,20 +134,20 @@ int main(int argc, char** argv) {
     exit(-1);
   }
 
-  unsigned    L = (unsigned) atoi(argv[3]);
-  unsigned    R = (unsigned) atoi(argv[4]);
-  unsigned    C = (unsigned) atoi(argv[5]);
-  float       alpha = (float) std::atof(argv[6]);
-  unsigned    num_rnds = (unsigned) std::atoi(argv[7]);
+  unsigned L = (unsigned)atoi(argv[3]);
+  unsigned R = (unsigned)atoi(argv[4]);
+  unsigned C = (unsigned)atoi(argv[5]);
+  float alpha = (float)std::atof(argv[6]);
+  unsigned num_rnds = (unsigned)std::atoi(argv[7]);
   std::string save_path(argv[8]);
   std::string query_file(argv[9]);
-  int         recall_at = (int) atoi(argv[10]);
+  int recall_at = (int)atoi(argv[10]);
 
   std::vector<_u64> Lvec;
 
   for (int ctr = 11; ctr < argc; ctr++) {
     _u64 curL = std::atoi(argv[ctr]);
-    if (curL >= (_u64) recall_at)
+    if (curL >= (_u64)recall_at)
       Lvec.push_back(curL);
   }
 

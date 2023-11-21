@@ -9,9 +9,9 @@
 #include "partition_and_pq.h"
 #include "utils.h"
 
-template<typename T>
-bool build_index(const char* dataFilePath, const char* indexFilePath,
-                 const char* indexBuildParameters, const char* tag_file,
+template <typename T>
+bool build_index(const char *dataFilePath, const char *indexFilePath,
+                 const char *indexBuildParameters, const char *tag_file,
                  int single_file_index) {
   std::string tag_filename = std::string(tag_file);
 
@@ -30,7 +30,7 @@ bool build_index(const char* dataFilePath, const char* indexFilePath,
                                       save_index_as_one_file, tag_file);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 11) {
     diskann::cout << "Usage: " << argv[0]
                   << "  [data_type<float/int8/uint8>]  [data_file.bin]  "

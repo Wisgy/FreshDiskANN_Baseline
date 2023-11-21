@@ -12,15 +12,14 @@
 #include "cached_io.h"
 #include "utils.h"
 
-template<typename T>
-int create_disk_layout(char **argv) {
+template <typename T> int create_disk_layout(char **argv) {
   std::string vamana_file(argv[2]);
   std::string base_file(argv[3]);
   std::string tags_file(argv[4]);
   std::string pq_pivots_file(argv[5]);
   std::string pq_vectors_file(argv[6]);
   std::string output_file(argv[7]);
-  bool        single_index_flag = false;
+  bool single_index_flag = false;
   if (base_file == "null")
     single_index_flag = true;
   diskann::create_disk_layout<T, uint32_t>(vamana_file, base_file, "",

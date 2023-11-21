@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <iostream>
-#include <fstream>
-#include <random>
-#include <string>
-#include <numeric>
 #include <cassert>
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <string>
 #include <vector>
 
 #include <omp.h>
 
-#include "utils.h"
 #include "distance.h"
 #include "logger.h"
+#include "utils.h"
 
 // 7-- OpenMP thread pool test
 
@@ -55,16 +55,14 @@ void testOpenMPThreadPool() {
 bool Avx2SupportedCPU = true;
 
 // Utility functions.
-template<typename T>
-void printArray(T* arr, int size) {
+template <typename T> void printArray(T *arr, int size) {
   for (int i = 0; i < size; i++) {
-    std::cout << (int) arr[i] << " ";
+    std::cout << (int)arr[i] << " ";
   }
   std::cout << std::endl;
 }
 
-template<>
-void printArray(float* arr, int size) {
+template <> void printArray(float *arr, int size) {
   for (int i = 0; i < size; i++) {
     std::cout << arr[i] << " ";
   }
@@ -72,16 +70,16 @@ void printArray(float* arr, int size) {
 }
 
 // Lame but correct distance computations
-float distanceL2_I(const int8_t* a, const int8_t* b, size_t size) {
+float distanceL2_I(const int8_t *a, const int8_t *b, size_t size) {
   float distance = 0;
   for (int i = 0; i < size; i++) {
-    int16_t diff = ((int16_t) a[i] - (int16_t) b[i]);
+    int16_t diff = ((int16_t)a[i] - (int16_t)b[i]);
     distance += diff * diff;
   }
   return distance;
 }
 
-float distanceL2_F(const float* a, const float* b, size_t size) {
+float distanceL2_F(const float *a, const float *b, size_t size) {
   float distance = 0;
   for (int i = 0; i < size; i++) {
     distance += (a[i] - b[i]) * (a[i] - b[i]);
@@ -89,18 +87,18 @@ float distanceL2_F(const float* a, const float* b, size_t size) {
   return distance;
 }
 
-float distanceCosine_I(const int8_t* a, const int8_t* b, size_t size) {
+float distanceCosine_I(const int8_t *a, const int8_t *b, size_t size) {
   float aMag = 0.0f, bMag = 0.0f, scalarProduct = 0.0f;
   for (int i = 0; i < size; i++) {
-    aMag += ((int32_t) a[i]) * ((int32_t) a[i]);
-    bMag += ((int32_t) b[i]) * ((int32_t) b[i]);
-    scalarProduct += ((int32_t) a[i]) * ((int32_t) b[i]);
+    aMag += ((int32_t)a[i]) * ((int32_t)a[i]);
+    bMag += ((int32_t)b[i]) * ((int32_t)b[i]);
+    scalarProduct += ((int32_t)a[i]) * ((int32_t)b[i]);
   }
   std::cout << "aMag: " << aMag << " bMag: " << bMag
             << " product: " << scalarProduct << std::endl;
-  return 1.0f - (float) (scalarProduct / (sqrt(aMag) * sqrt(bMag)));
+  return 1.0f - (float)(scalarProduct / (sqrt(aMag) * sqrt(bMag)));
 }
-float distanceCosine_F(const float* a, const float* b, size_t size) {
+float distanceCosine_F(const float *a, const float *b, size_t size) {
   float aMag = 0.0f, bMag = 0.0f, scalarProduct = 0.0f;
   for (int i = 0; i < size; i++) {
     aMag += a[i] * a[i];
@@ -110,10 +108,10 @@ float distanceCosine_F(const float* a, const float* b, size_t size) {
   std::cout << "aMag: " << aMag << " bMag: " << bMag
             << " product: " << scalarProduct << std::endl;
 
-  return 1.0f - (float) (scalarProduct / (sqrt(aMag) * sqrt(bMag)));
+  return 1.0f - (float)(scalarProduct / (sqrt(aMag) * sqrt(bMag)));
 }
 
-int8_t* createVector(int size) {
+int8_t *createVector(int size) {
   auto p = new int8_t[size];
   for (int i = 0; i < size; i++) {
     p[i] = 0;
@@ -121,27 +119,27 @@ int8_t* createVector(int size) {
   return p;
 }
 
-uint8_t* getData(const char* infileName, uint8_t dataTypeSizeInBytes,
-                 int32_t& count, int32_t& dimension) {
+uint8_t *getData(const char *infileName, uint8_t dataTypeSizeInBytes,
+                 int32_t &count, int32_t &dimension) {
   std::ifstream infile(infileName, std::ios::binary);
   if (!infile.is_open()) {
     std::cerr << "Could not open input file: " << infileName << std::endl;
   }
 
-  infile.read(reinterpret_cast<char*>(&count), sizeof(count));
-  infile.read(reinterpret_cast<char*>(&dimension), sizeof(dimension));
+  infile.read(reinterpret_cast<char *>(&count), sizeof(count));
+  infile.read(reinterpret_cast<char *>(&dimension), sizeof(dimension));
 
   diskann::cout << infileName << ": count: " << count
                 << " dimensions: " << dimension << std::endl;
 
-  uint64_t sizeToRead = (uint64_t) count * dataTypeSizeInBytes * dimension;
-  uint8_t* bytes = new uint8_t[sizeToRead];
-  infile.read((char*) bytes, sizeToRead);
+  uint64_t sizeToRead = (uint64_t)count * dataTypeSizeInBytes * dimension;
+  uint8_t *bytes = new uint8_t[sizeToRead];
+  infile.read((char *)bytes, sizeToRead);
 
   return bytes;
 }
 
-void concat_files(int argc, char** argv) {
+void concat_files(int argc, char **argv) {
   if (argc < 5) {
     diskann::cout
         << "Mode 1 requires 2 input files and 1 output file as argument."
@@ -152,9 +150,9 @@ void concat_files(int argc, char** argv) {
     return;
   }
 
-  int      dimension1, dimension2, count1, count2;
-  uint8_t* data1 = getData(argv[2], 1, count1, dimension1);
-  uint8_t* data2 = getData(argv[3], 1, count2, dimension2);
+  int dimension1, dimension2, count1, count2;
+  uint8_t *data1 = getData(argv[2], 1, count1, dimension1);
+  uint8_t *data2 = getData(argv[3], 1, count2, dimension2);
 
   if (dimension1 != dimension2) {
     diskann::cout << "Error! Cannot combine vectors of differing dimensions ("
@@ -169,8 +167,8 @@ void concat_files(int argc, char** argv) {
   }
   outFile << count1 + count2;
   outFile << dimension1;
-  outFile.write((char*) data1, count1);
-  outFile.write((char*) data2, count2);
+  outFile.write((char *)data1, count1);
+  outFile.write((char *)data2, count2);
   outFile.close();
 
   delete[] data1;
@@ -182,8 +180,8 @@ void concat_files(int argc, char** argv) {
                 << std::endl;
 }
 
-void assignPtr(std::unique_ptr<float[]>& data) {
-  float* ptr = new float[30];
+void assignPtr(std::unique_ptr<float[]> &data) {
+  float *ptr = new float[30];
   for (int i = 0; i < 30; i++) {
     ptr[i] = i * 1.0f;
   }
@@ -207,11 +205,11 @@ void uniquePtrAssignment() {
   diskann::cout << "safe." << std::endl;
 }
 
-float     epsilon = 0.01;
+float epsilon = 0.01;
 const int A_SIZE = 100;
 const int A_COUNT = 20;
-void      compareDistanceComputationsInt() {
-       // int8_t vec1[] = {127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
+void compareDistanceComputationsInt() {
+  // int8_t vec1[] = {127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
   //                 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
   //                 127, 127, 127, 127, 127, 127, 127, 127, 127, 127};
   // int8_t vec2[] = {-128, -128, -128, -128, -128, -128, -128, -128,
@@ -223,15 +221,15 @@ void      compareDistanceComputationsInt() {
   srand(time(0));
   bool neg = false;
   for (int i = 0; i < A_SIZE; i++) {
-         auto a = rand() % 10;
-         auto b = rand() % 10;
-         vec1[i] = -a;  // < 0 ? -a : a;
-         vec2[i] = -b;  // < 0 ? -b : b;
+    auto a = rand() % 10;
+    auto b = rand() % 10;
+    vec1[i] = -a; // < 0 ? -a : a;
+    vec2[i] = -b; // < 0 ? -b : b;
 
-         neg = neg || vec1[i] < 0 || vec2[i] < 0;
+    neg = neg || vec1[i] < 0 || vec2[i] < 0;
   }
   if (!neg) {
-         diskann::cout << "No negative numbers in test. " << std::endl;
+    diskann::cout << "No negative numbers in test. " << std::endl;
   }
 
   std::cout << "Starting distance computation test for float." << std::endl;
@@ -239,31 +237,31 @@ void      compareDistanceComputationsInt() {
   printArray(vec2, 16);
 
   {
-         // diskann::DistanceL2Int8 dist;
+    // diskann::DistanceL2Int8 dist;
     diskann::AVXDistanceL2Int8 dist;
-    float                      dist1 = dist.compare(vec1, vec2, 16);
-    float                      dist2 = distanceL2_I(vec1, vec2, 16);
+    float dist1 = dist.compare(vec1, vec2, 16);
+    float dist2 = distanceL2_I(vec1, vec2, 16);
 
     if (abs(dist1 - dist2) > epsilon) {
-           std::cout
-               << "compareDistanceComputationsInt(): L2 Test failed. AVX dist: "
-               << dist1 << " normal dist: " << dist2 << " difference > " << epsilon
-               << std::endl;
+      std::cout
+          << "compareDistanceComputationsInt(): L2 Test failed. AVX dist: "
+          << dist1 << " normal dist: " << dist2 << " difference > " << epsilon
+          << std::endl;
     } else {
-           std::cout << "Two scores are the same. " << std::endl;
+      std::cout << "Two scores are the same. " << std::endl;
     }
   }
   {
-         diskann::DistanceCosineInt8 dist;
-         float                       dist1 = dist.compare(vec1, vec2, 16);
-         float                       dist2 = distanceCosine_I(vec1, vec2, 16);
-         if (abs(dist1 - dist2) > epsilon) {
-           std::cout
-               << "compareDistanceComputationsInt(): Cosine Test failed. AVX dist: "
-               << dist1 << " normal dist: " << dist2 << " difference > " << epsilon
-               << std::endl;
+    diskann::DistanceCosineInt8 dist;
+    float dist1 = dist.compare(vec1, vec2, 16);
+    float dist2 = distanceCosine_I(vec1, vec2, 16);
+    if (abs(dist1 - dist2) > epsilon) {
+      std::cout
+          << "compareDistanceComputationsInt(): Cosine Test failed. AVX dist: "
+          << dist1 << " normal dist: " << dist2 << " difference > " << epsilon
+          << std::endl;
     } else {
-           std::cout << "Two scores are the same. " << std::endl;
+      std::cout << "Two scores are the same. " << std::endl;
     }
   }
 }
@@ -272,8 +270,8 @@ void compareDistanceComputationsFloat() {
   srand(time(0));
   float a[A_SIZE], b[A_SIZE];
   for (int i = 0; i < A_SIZE; i++) {
-    a[i] = (float) (rand() / 10E5);
-    b[i] = (float) (rand() / 10E5);
+    a[i] = (float)(rand() / 10E5);
+    b[i] = (float)(rand() / 10E5);
   }
 
   printArray(a, 16);
@@ -283,8 +281,8 @@ void compareDistanceComputationsFloat() {
 
   {
     diskann::AVXDistanceL2Float dist;
-    float                       dist1 = dist.compare(a, b, 16);
-    float                       dist2 = distanceL2_F(a, b, 16);
+    float dist1 = dist.compare(a, b, 16);
+    float dist2 = distanceL2_F(a, b, 16);
     if (abs(dist1 - dist2) > epsilon) {
       std::cout
           << "compareDistanceComputationsFloat(): L2 Test failed. AVX dist: "
@@ -296,8 +294,8 @@ void compareDistanceComputationsFloat() {
   }
   {
     diskann::DistanceCosineFloat dist;
-    float                        dist1 = dist.compare(a, b, 16);
-    float                        dist2 = distanceCosine_F(a, b, 16);
+    float dist1 = dist.compare(a, b, 16);
+    float dist2 = distanceCosine_F(a, b, 16);
     if (abs(dist1 - dist2) > epsilon) {
       std::cout << "compareDistanceComputationsFloat(): Cosine Test failed. "
                    "AVX dist: "
@@ -334,32 +332,30 @@ void testStreamBufImpl() {
 
 //--5. Testing MemBuf Impl
 class ContentBuf : public std::basic_streambuf<char> {
- public:
-  ContentBuf(char* ptr, size_t size) {
-    setg(ptr, ptr, ptr + size);
-  }
+public:
+  ContentBuf(char *ptr, size_t size) { setg(ptr, ptr, ptr + size); }
 };
-void testMemBufImpl(int argc, char** argv) {
+void testMemBufImpl(int argc, char **argv) {
   // Create a simple binary file.
-  std::string   fileName = argv[2];
+  std::string fileName = argv[2];
   std::ofstream output_file(fileName, std::ios::binary);
-  uint32_t      n1 = 105, n2 = 18090;
-  const int     F_ARRAY_LEN = 5;
-  float         fs[] = {1.024f, 2.39021f, 4.532f, 7.980232f, 6.222f};
-  const int     I_ARRAY_LEN = 7;
-  uint8_t       arr[] = {12, 13, 14, 33, 222, 183, 99};
-  float         f1 = 9283.1237f;
+  uint32_t n1 = 105, n2 = 18090;
+  const int F_ARRAY_LEN = 5;
+  float fs[] = {1.024f, 2.39021f, 4.532f, 7.980232f, 6.222f};
+  const int I_ARRAY_LEN = 7;
+  uint8_t arr[] = {12, 13, 14, 33, 222, 183, 99};
+  float f1 = 9283.1237f;
 
-  output_file.write((const char*) &n1, sizeof(uint32_t));
-  output_file.write((const char*) &n2, sizeof(uint32_t));
-  output_file.write((const char*) &f1, sizeof(float));
-  output_file.write((const char*) fs, F_ARRAY_LEN * sizeof(float));
-  output_file.write((const char*) arr, I_ARRAY_LEN * sizeof(uint8_t));
+  output_file.write((const char *)&n1, sizeof(uint32_t));
+  output_file.write((const char *)&n2, sizeof(uint32_t));
+  output_file.write((const char *)&f1, sizeof(float));
+  output_file.write((const char *)fs, F_ARRAY_LEN * sizeof(float));
+  output_file.write((const char *)arr, I_ARRAY_LEN * sizeof(uint8_t));
 
   output_file.close();
 
   std::ifstream input_file(fileName, std::ios::binary | std::ios::ate);
-  size_t        size = input_file.tellg();
+  size_t size = input_file.tellg();
   input_file.seekg(0);
 
   auto data = new char[size];
@@ -368,9 +364,9 @@ void testMemBufImpl(int argc, char** argv) {
   diskann::cout << "Read " << size << " bytes from file" << std::endl;
 
   uint32_t int1, int2;
-  float    f2;
-  float*   fs1 = new float[F_ARRAY_LEN];
-  uint8_t* arr1 = new uint8_t[I_ARRAY_LEN];
+  float f2;
+  float *fs1 = new float[F_ARRAY_LEN];
+  uint8_t *arr1 = new uint8_t[I_ARRAY_LEN];
   memset(fs1, 0, sizeof(float) * F_ARRAY_LEN);
   memset(arr1, 0, sizeof(uint8_t) * I_ARRAY_LEN);
 
@@ -380,14 +376,14 @@ void testMemBufImpl(int argc, char** argv) {
   // reader.read((char*) &f2, sizeof(float));
   // reader.read((char*) fs1, sizeof(float) * F_ARRAY_LEN);
 
-  ContentBuf               cb(data, size);
+  ContentBuf cb(data, size);
   std::basic_istream<char> reader(&cb);
 
-  reader.read((char*) &int1, sizeof(uint32_t));
-  reader.read((char*) &int2, sizeof(uint32_t));
-  reader.read((char*) &f2, sizeof(float));
-  reader.read((char*) fs1, F_ARRAY_LEN * sizeof(float));
-  reader.read((char*) arr1, I_ARRAY_LEN * sizeof(uint8_t));
+  reader.read((char *)&int1, sizeof(uint32_t));
+  reader.read((char *)&int2, sizeof(uint32_t));
+  reader.read((char *)&f2, sizeof(float));
+  reader.read((char *)fs1, F_ARRAY_LEN * sizeof(float));
+  reader.read((char *)arr1, I_ARRAY_LEN * sizeof(uint8_t));
 
   diskann::cout << int1 << "," << int2 << "," << f2 << std::endl;
   for (int i = 0; i < F_ARRAY_LEN; i++) {
@@ -404,12 +400,12 @@ void testMemBufImpl(int argc, char** argv) {
   assert(abs(f1 - f2) < 0.0001);
 }
 
-void testSubstringImpl(int argc, char** argv) {
+void testSubstringImpl(int argc, char **argv) {
   assert(argc >= 4);
 
   std::string s1(argv[2]);
   std::string s2(argv[3]);
-  assert(s1[0] == s2[0]);  // at least they share one char in common!
+  assert(s1[0] == s2[0]); // at least they share one char in common!
 
   size_t index = -1;
   size_t compareLen = s1.length() <= s2.length() ? s1.length() : s2.length();
@@ -425,7 +421,7 @@ void testSubstringImpl(int argc, char** argv) {
 // DISKANN_DLLIMPORT std::basic_ostream<char> diskann::cout;
 // DISKANN_DLLIMPORT std::basic_ostream<char> diskann::cerr;
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc < 2) {
     diskann::cout
         << std::string("Usage: ") << argv[0] << " <mode> [arguments]"
@@ -452,31 +448,31 @@ int main(int argc, char** argv) {
   std::cout << "Testing" << std::endl;
 
   switch (mode) {
-    case 1:
-      concat_files(argc, argv);
-      return 0;
-      break;
-    case 2:
-      uniquePtrAssignment();
-      break;
-    case 3:
-      compareDistanceComputationsInt();
-      compareDistanceComputationsFloat();
-      break;
-    case 4:
-      testStreamBufImpl();
-      break;
-    case 5:
-      testMemBufImpl(argc, argv);
-      break;
-    case 6:
-      testSubstringImpl(argc, argv);
-      break;
-    case 7:
-      testOpenMPThreadPool();
-      break;
-    default:
-      diskann::cout << "Don't know what to do with mode parameter: " << argv[1]
-                    << std::endl;
+  case 1:
+    concat_files(argc, argv);
+    return 0;
+    break;
+  case 2:
+    uniquePtrAssignment();
+    break;
+  case 3:
+    compareDistanceComputationsInt();
+    compareDistanceComputationsFloat();
+    break;
+  case 4:
+    testStreamBufImpl();
+    break;
+  case 5:
+    testMemBufImpl(argc, argv);
+    break;
+  case 6:
+    testSubstringImpl(argc, argv);
+    break;
+  case 7:
+    testOpenMPThreadPool();
+    break;
+  default:
+    diskann::cout << "Don't know what to do with mode parameter: " << argv[1]
+                  << std::endl;
   }
 }

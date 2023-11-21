@@ -9,22 +9,22 @@
 #include <malloc.h>
 #include <minwinbase.h>
 
-#include <cstdio>
-#include <mutex>
-#include <thread>
 #include "aligned_file_reader.h"
 #include "tsl/robin_map.h"
 #include "utils.h"
 #include "windows_customizations.h"
+#include <cstdio>
+#include <mutex>
+#include <thread>
 
 class WindowsAlignedFileReader : public AlignedFileReader {
- private:
+private:
   std::wstring m_filename;
 
- protected:
+protected:
   // virtual IOContext createContext();
 
- public:
+public:
   DISKANN_DLLEXPORT WindowsAlignedFileReader(){};
   DISKANN_DLLEXPORT virtual ~WindowsAlignedFileReader(){};
 
@@ -34,8 +34,7 @@ class WindowsAlignedFileReader : public AlignedFileReader {
   DISKANN_DLLEXPORT virtual void close();
 
   DISKANN_DLLEXPORT virtual void register_thread();
-  DISKANN_DLLEXPORT virtual void deregister_thread() {
-  }
+  DISKANN_DLLEXPORT virtual void deregister_thread() {}
   DISKANN_DLLEXPORT virtual IOContext &get_ctx();
 
   // process batch of aligned requests in parallel
@@ -43,5 +42,5 @@ class WindowsAlignedFileReader : public AlignedFileReader {
   DISKANN_DLLEXPORT virtual void read(std::vector<AlignedRead> &read_reqs,
                                       IOContext &ctx, bool async);
 };
-#endif  // USE_BING_INFRA
-#endif  //_WINDOWS
+#endif // USE_BING_INFRA
+#endif //_WINDOWS

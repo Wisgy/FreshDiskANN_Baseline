@@ -18,11 +18,11 @@
 
 #include "memory_mapper.h"
 
-template<typename T>
-int build_incremental_index(const std::string& data_path, const unsigned L,
+template <typename T>
+int build_incremental_index(const std::string &data_path, const unsigned L,
                             const unsigned R, const unsigned C,
                             const unsigned num_rnds, const float alpha,
-                            const std::string& save_path,
+                            const std::string &save_path,
                             const unsigned num_incr, const unsigned num_frozen,
                             const int del_mode) {
   diskann::Parameters paras;
@@ -32,7 +32,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   paras.Set<float>("alpha", alpha);
   paras.Set<unsigned>("num_rnds", num_rnds);
 
-  T*     data_load = NULL;
+  T *data_load = NULL;
   size_t num_points, dim, aligned_dim;
 
   diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
@@ -60,7 +60,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   tsl::robin_set<unsigned> used_tags;
   tsl::robin_set<unsigned> inserted_tags;
   tsl::robin_set<unsigned> deleted_tags;
-  unsigned                 num_curr_pts = num_points - num_incr + num_frozen;
+  unsigned num_curr_pts = num_points - num_incr + num_frozen;
 
   for (unsigned i = 0; i < rounds; i++) {
     diskann::cout << i << std::endl << std::endl;
@@ -70,7 +70,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
       insert_list.insert(rand() % num_points);
     }
     unsigned tag_p;
-    size_t   res = used_tags.size();
+    size_t res = used_tags.size();
     while (used_tags.size() < res + insert_size) {
       tag_p = rand() % num_points + 1;
       size_t temp = used_tags.size();
@@ -80,7 +80,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
     }
     diskann::cout << "Inserting " << insert_size << " points" << std::endl;
     tsl::robin_set<unsigned>::iterator it = inserted_tags.begin();
-    diskann::Timer                     insert_timer;
+    diskann::Timer insert_timer;
     for (auto p : insert_list) {
       index.insert_point(data_load + p * aligned_dim, paras, *it);
       it++;
@@ -89,9 +89,9 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
                   << "ms\n";
 
     auto save_path_inc =
-        save_path + ".inc" + std::to_string(i);  // 10 -denotes that 10% of base
-                                                 // points are being inserted at
-                                                 // a time
+        save_path + ".inc" + std::to_string(i); // 10 -denotes that 10% of base
+                                                // points are being inserted at
+                                                // a time
     index.save(save_path_inc.c_str());
 
     num_curr_pts += insert_size;
@@ -101,9 +101,9 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
 
     /*_________________________Deleting points___________________________*/
 
-    unsigned delete_size = (unsigned) (num_curr_pts / 10);
+    unsigned delete_size = (unsigned)(num_curr_pts / 10);
     while (deleted_tags.size() < delete_size) {
-      auto                               r = rand() % used_tags.size();
+      auto r = rand() % used_tags.size();
       tsl::robin_set<unsigned>::iterator iter = used_tags.begin();
       for (unsigned j = 0; j < r; j++)
         iter++;
@@ -161,7 +161,7 @@ int build_incremental_index(const std::string& data_path, const unsigned L,
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 12) {
     diskann::cout << "Correct usage: " << argv[0]
                   << " type[int8/uint8/float] data_file L R C alpha "
@@ -172,15 +172,15 @@ int main(int argc, char** argv) {
     exit(-1);
   }
 
-  unsigned    L = (unsigned) atoi(argv[3]);
-  unsigned    R = (unsigned) atoi(argv[4]);
-  unsigned    C = (unsigned) atoi(argv[5]);
-  float       alpha = (float) std::atof(argv[6]);
-  unsigned    num_rnds = (unsigned) std::atoi(argv[7]);
+  unsigned L = (unsigned)atoi(argv[3]);
+  unsigned R = (unsigned)atoi(argv[4]);
+  unsigned C = (unsigned)atoi(argv[5]);
+  float alpha = (float)std::atof(argv[6]);
+  unsigned num_rnds = (unsigned)std::atoi(argv[7]);
   std::string save_path(argv[8]);
-  unsigned    num_incr = (unsigned) atoi(argv[9]);
-  unsigned    num_frozen = (unsigned) atoi(argv[10]);
-  int         del_mode = (int) atoi(argv[11]);
+  unsigned num_incr = (unsigned)atoi(argv[9]);
+  unsigned num_frozen = (unsigned)atoi(argv[10]);
+  int del_mode = (int)atoi(argv[11]);
 
   if (std::string(argv[1]) == std::string("int8"))
     build_incremental_index<int8_t>(argv[2], L, R, C, num_rnds, alpha,

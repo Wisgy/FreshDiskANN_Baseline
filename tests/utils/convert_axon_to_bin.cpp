@@ -1,28 +1,28 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
+#include "ann_exception.h"
+#include "cached_io.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include "cached_io.h"
-#include "ann_exception.h"
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
-float (*atofLambda)(const std::string&) = [](const std::string& str) {
-  return (float) ::atof(str.c_str());
+float (*atofLambda)(const std::string &) = [](const std::string &str) {
+  return (float)::atof(str.c_str());
 };
-int8_t (*atoiLambda)(const std::string&) = [](const std::string& str) {
+int8_t (*atoiLambda)(const std::string &) = [](const std::string &str) {
   return (int8_t)::atoi(str.c_str());
 };
-uint8_t (*atouLambda)(const std::string&) = [](const std::string& str) {
+uint8_t (*atouLambda)(const std::string &) = [](const std::string &str) {
   return (uint8_t)::atoi(str.c_str());
 };
 
 const int MIN_POINTS_FOR_VALUE_VERIFICATION = 10000;
 
-std::vector<std::string> splitLine(const std::string& str, const char delimiter,
+std::vector<std::string> splitLine(const std::string &str, const char delimiter,
                                    int suggestedCapacity) {
   std::vector<std::string> records;
   records.reserve(suggestedCapacity);
@@ -32,10 +32,10 @@ std::vector<std::string> splitLine(const std::string& str, const char delimiter,
   return records;
 }
 
-template<typename T>
-std::vector<T> getVector(const std::string& str,
-                         T                  convertFn(const std::string& str),
-                         int                suggestedSize) {
+template <typename T>
+std::vector<T> getVector(const std::string &str,
+                         T convertFn(const std::string &str),
+                         int suggestedSize) {
   auto idsAndVector = splitLine(str, '\t', suggestedSize);
 
   std::vector<T> typedVec;
@@ -55,20 +55,20 @@ std::vector<T> getVector(const std::string& str,
   }
   std::transform(
       strVec.begin(), strVec.end(), std::back_inserter(typedVec),
-      [&convertFn](const std::string& str) { return convertFn(str); });
+      [&convertFn](const std::string &str) { return convertFn(str); });
 
   return typedVec;
 }
 
-template<typename T>
-uint32_t getDimension(const char* inFile, T convertFn(const std::string& val)) {
+template <typename T>
+uint32_t getDimension(const char *inFile, T convertFn(const std::string &val)) {
   std::ifstream fin(inFile);
   if (fin.is_open()) {
     std::string line;
     std::getline(fin, line);
 
     auto vector = getVector(line, convertFn, 1);
-    return (uint32_t) vector.size();
+    return (uint32_t)vector.size();
   } else {
     char message[2048];
     std::cerr << "Could not open input file: " << inFile << ". "
@@ -77,9 +77,9 @@ uint32_t getDimension(const char* inFile, T convertFn(const std::string& val)) {
   }
 }
 
-uint32_t getRowCount(const char* infile) {
+uint32_t getRowCount(const char *infile) {
   std::ifstream fin(infile);
-  std::string   line;
+  std::string line;
 
   uint32_t count = 0;
   while (std::getline(fin, line)) {
@@ -94,21 +94,21 @@ uint32_t getRowCount(const char* infile) {
   return count;
 }
 
-template<typename T>
-void writeBinaryVec(const char* outfile, uint32_t numDimensions,
-                    const std::vector<std::vector<T>>& allVecs) {
-  uint32_t numPoints = (uint32_t) allVecs.size();
+template <typename T>
+void writeBinaryVec(const char *outfile, uint32_t numDimensions,
+                    const std::vector<std::vector<T>> &allVecs) {
+  uint32_t numPoints = (uint32_t)allVecs.size();
   diskann::cout << "Writing  " << numPoints
                 << " records of dimension: " << numDimensions
                 << " to file: " << outfile << "...";
 
   std::ofstream fout(outfile, std::ios::binary);
   if (fout.is_open()) {
-    fout.write((const char*) &numPoints, sizeof(uint32_t));
-    fout.write((const char*) &numDimensions, sizeof(uint32_t));
+    fout.write((const char *)&numPoints, sizeof(uint32_t));
+    fout.write((const char *)&numDimensions, sizeof(uint32_t));
 
     for (auto vec : allVecs) {
-      fout.write((const char*) vec.data(), numDimensions * sizeof(T));
+      fout.write((const char *)vec.data(), numDimensions * sizeof(T));
     }
     diskann::cout << "done." << std::endl;
   } else {
@@ -141,26 +141,28 @@ void writeBinaryVec(const char* outfile, uint32_t numDimensions,
 //}
 
 uint32_t numPointsToCheck(uint32_t numPoints) {
-  uint32_t point01percent = (uint32_t) (0.01 * numPoints / 100);
-  uint32_t point1percent = (uint32_t) (0.1 * numPoints / 100);
-  uint32_t onepercent = (uint32_t) (1 * numPoints / 100);
+  uint32_t point01percent = (uint32_t)(0.01 * numPoints / 100);
+  uint32_t point1percent = (uint32_t)(0.1 * numPoints / 100);
+  uint32_t onepercent = (uint32_t)(1 * numPoints / 100);
 
-  return point01percent > MIN_POINTS_FOR_VALUE_VERIFICATION  ? point01percent
-         : point1percent > MIN_POINTS_FOR_VALUE_VERIFICATION ? point1percent
-         : onepercent > MIN_POINTS_FOR_VALUE_VERIFICATION    ? onepercent
-                                                             : numPoints;
+  return point01percent > MIN_POINTS_FOR_VALUE_VERIFICATION
+             ? point01percent
+             : point1percent > MIN_POINTS_FOR_VALUE_VERIFICATION
+                   ? point1percent
+                   : onepercent > MIN_POINTS_FOR_VALUE_VERIFICATION ? onepercent
+                                                                    : numPoints;
 }
 
-template<typename T>
-void sanityCheck(const char* origfile, const char* binfile,
+template <typename T>
+void sanityCheck(const char *origfile, const char *binfile,
                  uint32_t numDimensions, uint32_t numPoints,
-                 T convertFn(const std::string& str)) {
-  uint32_t      nd, np;
+                 T convertFn(const std::string &str)) {
+  uint32_t nd, np;
   std::ifstream fin(binfile, std::ios::binary);
   std::ifstream orig(origfile);
 
-  fin.read((char*) &np, sizeof(uint32_t));
-  fin.read((char*) &nd, sizeof(uint32_t));
+  fin.read((char *)&np, sizeof(uint32_t));
+  fin.read((char *)&nd, sizeof(uint32_t));
 
   assert(np == numPoints);
   if (np != numPoints) {
@@ -177,8 +179,8 @@ void sanityCheck(const char* origfile, const char* binfile,
 
   uint32_t mismatchCount = 0;
   uint32_t vectorsToCheck = numPointsToCheck(numPoints);
-  T*       data = new T[numDimensions * vectorsToCheck];
-  fin.read((char*) data, sizeof(T) * numDimensions * vectorsToCheck);
+  T *data = new T[numDimensions * vectorsToCheck];
+  fin.read((char *)data, sizeof(T) * numDimensions * vectorsToCheck);
 
   diskann::cout << "Checking first " << vectorsToCheck
                 << " records for byte-byte match." << std::endl;
@@ -210,9 +212,9 @@ void sanityCheck(const char* origfile, const char* binfile,
   diskann::cout << "Successfully verified binary conversion." << std::endl;
 }
 
-template<typename T>
-std::vector<T> getVector(const std::string& str,
-                         T                  convertFn(const std::string& val)) {
+template <typename T>
+std::vector<T> getVector(const std::string &str,
+                         T convertFn(const std::string &val)) {
   auto idsAndVector = splitLine(str, '\t', suggestedSize);
 
   std::vector<T> typedVec;
@@ -222,7 +224,7 @@ std::vector<T> getVector(const std::string& str,
     auto strVec = splitLine(idsAndVector[2], ',', suggestedSize);
     std::transform(
         strVec.begin(), strVec.end(), std::back_inserter(typedVec),
-        [&convertFn](const std::string& str) { return convertFn(str); });
+        [&convertFn](const std::string &str) { return convertFn(str); });
   } else {
     std::cerr << "Found line " << str
               << " that didn't have standard delimiters." << std::endl;
@@ -230,9 +232,9 @@ std::vector<T> getVector(const std::string& str,
   return typedVec;
 }
 
-template<typename T>
-void convert(const char* infile, const char* outfile,
-             T convertFn(const std::string& val), uint32_t suggestedSize) {
+template <typename T>
+void convert(const char *infile, const char *outfile,
+             T convertFn(const std::string &val), uint32_t suggestedSize) {
   uint32_t numDimensions = getDimension(infile, convertFn);
   uint32_t numPoints = 0;
 
@@ -243,8 +245,8 @@ void convert(const char* infile, const char* outfile,
   // int           index = 0;
 
   std::ifstream fin(infile);
-  std::string   line;
-  int           lc = 0;
+  std::string line;
+  int lc = 0;
   while (std::getline(fin, line)) {
     lc++;
     auto vector = getVector(line, convertFn, numDimensions);
@@ -278,11 +280,11 @@ void convert(const char* infile, const char* outfile,
   writeBinaryVec(outfile, numDimensions, allVecs);
   // delete[] data;
 
-  sanityCheck<T>(infile, outfile, numDimensions, (uint32_t) allVecs.size(),
+  sanityCheck<T>(infile, outfile, numDimensions, (uint32_t)allVecs.size(),
                  convertFn);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 5) {
     std::cerr << "Usage: " << argv[0]
               << " <uint8|int8|float> <input_axon_file> <out_bin_file> "
@@ -296,7 +298,7 @@ int main(int argc, char** argv) {
                 << argv[3] << std::endl;
 
   std::string datatype(argv[1]);
-  uint32_t    numPoints = (uint32_t)::atoi(argv[4]);
+  uint32_t numPoints = (uint32_t)::atoi(argv[4]);
 
   if (datatype == "uint8") {
     convert<uint8_t>(argv[2], argv[3], atouLambda, numPoints);

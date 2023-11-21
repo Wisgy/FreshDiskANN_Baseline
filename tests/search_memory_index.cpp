@@ -19,27 +19,26 @@
 #include "memory_mapper.h"
 #include "utils.h"
 
-template<typename T>
-int search_memory_index(int argc, char** argv) {
-  T*                query = nullptr;
-  unsigned*         gt_ids = nullptr;
-  unsigned*         gt_tags = nullptr;
-  float*            gt_dists = nullptr;
-  size_t            query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
+template <typename T> int search_memory_index(int argc, char **argv) {
+  T *query = nullptr;
+  unsigned *gt_ids = nullptr;
+  unsigned *gt_tags = nullptr;
+  float *gt_dists = nullptr;
+  size_t query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
   std::vector<_u64> Lvec;
 
   int arg_no = 2;
 
-  _u64        max_points = (_u64) std::atoi(argv[arg_no++]);
+  _u64 max_points = (_u64)std::atoi(argv[arg_no++]);
   std::string memory_index_file(argv[arg_no++]);
-  bool        dynamic_index = (bool) std::atoi(argv[arg_no++]);
-  bool        single_index_file = (bool) std::atoi(argv[arg_no++]);
+  bool dynamic_index = (bool)std::atoi(argv[arg_no++]);
+  bool single_index_file = (bool)std::atoi(argv[arg_no++]);
   //  std::string data_file(argv[arg_no++]);
   std::string query_bin(argv[arg_no++]);
   std::string truthset_bin(argv[arg_no++]);
-  _u64        recall_at = std::atoi(argv[arg_no++]);
+  _u64 recall_at = std::atoi(argv[arg_no++]);
   std::string result_output_prefix(argv[arg_no++]);
-  _u32        num_threads = (_u32) std::atoi(argv[arg_no++]);
+  _u32 num_threads = (_u32)std::atoi(argv[arg_no++]);
   std::string distance_metric(argv[arg_no++]);
 
   diskann::Metric m = (distance_metric == "cosine" ? diskann::Metric::COSINE
@@ -105,7 +104,7 @@ int search_memory_index(int argc, char** argv) {
   diskann::cout << "Index loaded" << std::endl;
 
   diskann::Parameters paras;
-  std::string         recall_string = "Recall@" + std::to_string(recall_at);
+  std::string recall_string = "Recall@" + std::to_string(recall_at);
   diskann::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS "
                 << std::setw(18) << "Mean Latency (ms)" << std::setw(15)
                 << "99.9 Latency" << std::setw(12) << recall_string
@@ -116,7 +115,7 @@ int search_memory_index(int argc, char** argv) {
       << std::endl;
 
   std::vector<std::vector<uint32_t>> query_result_ids(Lvec.size());
-  std::vector<std::vector<float>>    query_result_dists(Lvec.size());
+  std::vector<std::vector<float>> query_result_dists(Lvec.size());
   std::vector<std::vector<unsigned>> query_result_tags(Lvec.size());
 
   std::vector<double> latency_stats(query_num, 0);
@@ -130,31 +129,31 @@ int search_memory_index(int argc, char** argv) {
     auto s = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(num_threads)
-    for (int64_t i = 0; i < (int64_t) query_num; i++) {
+    for (int64_t i = 0; i < (int64_t)query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
       if (dynamic_index)
         index.search_with_tags(
-            query + i * query_aligned_dim, (uint64_t) recall_at, (_u32) L,
+            query + i * query_aligned_dim, (uint64_t)recall_at, (_u32)L,
             query_result_ids[test_id].data() + i * recall_at,
             query_result_dists[test_id].data() + i * recall_at);
       else
-        index.search(query + i * query_aligned_dim, recall_at, (_u32) L,
+        index.search(query + i * query_aligned_dim, recall_at, (_u32)L,
                      query_result_ids[test_id].data() + i * recall_at);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000;
     }
-    auto                          e = std::chrono::high_resolution_clock::now();
+    auto e = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = e - s;
 
-    float qps = (float) ((double) query_num / (double) diff.count());
+    float qps = (float)((double)query_num / (double)diff.count());
 
     float recall = 0;
     if (calc_recall_flag)
 
-      recall = (float) diskann::calculate_recall(
-          (_u32) query_num, gt_tags, gt_dists, (_u32) gt_dim,
-          query_result_ids[test_id].data(), (_u32) recall_at, (_u32) recall_at,
+      recall = (float)diskann::calculate_recall(
+          (_u32)query_num, gt_tags, gt_dists, (_u32)gt_dim,
+          query_result_ids[test_id].data(), (_u32)recall_at, (_u32)recall_at,
           active_tags);
 
     std::sort(latency_stats.begin(), latency_stats.end());
@@ -162,11 +161,11 @@ int search_memory_index(int argc, char** argv) {
     for (uint64_t q = 0; q < query_num; q++) {
       mean_latency += latency_stats[q];
     }
-    mean_latency /= (double) query_num;
+    mean_latency /= (double)query_num;
 
     diskann::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(18)
-                  << (float) mean_latency << std::setw(15)
-                  << (float) latency_stats[(_u64) (0.999 * (double) query_num)]
+                  << (float)mean_latency << std::setw(15)
+                  << (float)latency_stats[(_u64)(0.999 * (double)query_num)]
                   << std::setw(12) << recall << std::endl;
   }
 
@@ -185,7 +184,7 @@ int search_memory_index(int argc, char** argv) {
   return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc < 13) {
     diskann::cout
         << "Usage: " << argv[0]

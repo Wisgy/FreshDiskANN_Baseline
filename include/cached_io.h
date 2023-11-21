@@ -7,16 +7,15 @@
 #include <iostream>
 #include <sstream>
 
-#include "logger.h"
 #include "ann_exception.h"
+#include "logger.h"
 #include "utils.h"
 
 // sequential cached reads
 class cached_ifstream {
- public:
-  cached_ifstream() {
-  }
-  cached_ifstream(const std::string& filename, uint64_t cacheSize,
+public:
+  cached_ifstream() {}
+  cached_ifstream(const std::string &filename, uint64_t cacheSize,
                   uint32_t initial_offset = 0)
       : cache_size(cacheSize), cur_off(0) {
     this->open(filename, cache_size, initial_offset);
@@ -32,7 +31,7 @@ class cached_ifstream {
       reader.close();
   }
 
-  void open(const std::string& filename, uint64_t cacheSize,
+  void open(const std::string &filename, uint64_t cacheSize,
             size_t initial_offset = 0) {
     this->cur_off = 0;
     reader.open(filename, std::ios::binary | std::ios::ate);
@@ -49,10 +48,8 @@ class cached_ifstream {
     reader.read(cache_buf, cacheSize);
   }
 
-  size_t get_file_size() {
-    return fsize;
-  }
-  void read(char* read_buf, uint64_t n_bytes) {
+  size_t get_file_size() { return fsize; }
+  void read(char *read_buf, uint64_t n_bytes) {
     assert(cache_buf != nullptr);
     assert(read_buf != nullptr);
     if (n_bytes <= (cache_size - cur_off)) {
@@ -91,13 +88,13 @@ class cached_ifstream {
     }
   }
 
- private:
+private:
   // underlying ifstream
   std::ifstream reader;
   // # bytes to cache in one shot read
   uint64_t cache_size = 0;
   // underlying buf for cache
-  char* cache_buf = nullptr;
+  char *cache_buf = nullptr;
   // offset into cache_buf for cur_pos
   uint64_t cur_off = 0;
   // file size
@@ -106,15 +103,14 @@ class cached_ifstream {
 
 // sequential cached writes
 class cached_ofstream {
- public:
-  cached_ofstream() {
-  }
-  cached_ofstream(const std::string& filename, uint64_t cache_size,
+public:
+  cached_ofstream() {}
+  cached_ofstream(const std::string &filename, uint64_t cache_size,
                   size_t initial_offset = 0)
       : cache_size(cache_size), cur_off(0) {
     open(filename, cache_size, initial_offset);
   }
-  void open(const std::string& filename, uint64_t cache_size,
+  void open(const std::string &filename, uint64_t cache_size,
             size_t initial_offset = 0) {
     open_file_to_write(writer, filename);
     assert(writer.is_open());
@@ -126,9 +122,7 @@ class cached_ofstream {
                   << ", cache_size: " << cache_size << std::endl;
   }
 
-  ~cached_ofstream() {
-    this->close();
-  }
+  ~cached_ofstream() { this->close(); }
 
   void close() {
     // dump any remaining data in memory
@@ -146,11 +140,9 @@ class cached_ofstream {
     diskann::cout << "Finished writing " << fsize << "B" << std::endl;
   }
 
-  size_t get_file_size() {
-    return fsize;
-  }
+  size_t get_file_size() { return fsize; }
   // writes n_bytes from write_buf to the underlying ofstream/cache
-  void write(char* write_buf, uint64_t n_bytes) {
+  void write(char *write_buf, uint64_t n_bytes) {
     assert(cache_buf != nullptr);
     if (n_bytes <= (cache_size - cur_off)) {
       // case 1: cache can take all data
@@ -183,13 +175,13 @@ class cached_ofstream {
     writer.seekp(0);
   }
 
- private:
+private:
   // underlying ofstream
   std::ofstream writer;
   // # bytes to cache for one shot write
   uint64_t cache_size = 0;
   // underlying buf for cache
-  char* cache_buf = nullptr;
+  char *cache_buf = nullptr;
   // offset into cache_buf for cur_pos
   uint64_t cur_off = 0;
 
