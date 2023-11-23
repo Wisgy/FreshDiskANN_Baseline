@@ -30,15 +30,12 @@
 #include <unistd.h>
 #endif
 
-// #define UNIT
-
 // #define Merge_Size 30000000
 // #define NUM_INSERT_THREADS 4
 // #define NUM_SEARCH_THREADS 10
 // diskann::Timer globalTimer;
 
 // int begin_time = 0;
-#ifndef UNIT
 template <typename T, typename TagT>
 void search_kernel(T *query, size_t query_num, size_t query_aligned_dim,
                    unsigned *gt_ids, float *gt_dists, size_t gt_dim,
@@ -116,8 +113,8 @@ void insertion_kernel(T *data_load, diskann::MergeInsert<T, TagT> &index,
                       size_t aligned_dim) {
     diskann::Timer timer;
     std::cout << "Begin Insert" << std::endl;
-    for (_s64 i = 0; i < (_s64)insert_tags.size(); i++) {
-        index.insert(data_load + aligned_dim * insert_tags[i], insert_tags[i]);
+    for (auto tag : insert_tags) {
+        index.insert(data_load + aligned_dim * tag, tag);
     }
     float time_secs = timer.elapsed() / 1.0e6f;
     std::cout << "Inserted " << insert_tags.size() << " points in " << time_secs
@@ -189,7 +186,6 @@ void DeleteReinsert(const std::string &data_path, const unsigned L_mem,
     paras.Set<unsigned>("num_search_threads", 2);
     // FIXME:load truthset
     unsigned *gt_ids = nullptr;
-    // uint32_t* gt_tags = nullptr; whether to use it
     float *gt_dists = nullptr;
     size_t gt_num, gt_dim;
     diskann::load_truthset(truthset_file, gt_ids, gt_dists, gt_num, gt_dim);
@@ -214,17 +210,17 @@ void DeleteReinsert(const std::string &data_path, const unsigned L_mem,
 
     // TODO:load tags
     tsl::robin_set<TagT> active_tags, inactive_tags;
-    uint64_t *metadata;
+    TagT *metadata;
     size_t nr, nc;
-    diskann::load_bin<uint64_t>(index_file, metadata, nr, nc);
+    diskann::load_bin<TagT>(index_file, metadata, nr, nc);
     active_tags.clear();
-    inactive_tags.clear();
+    // inactive_tags.clear();
     for (size_t i = 0; i < nr; i++) {
         active_tags.insert(i);
     }
-    for (size_t i = nr; i < num_points; i++) {
-        inactive_tags.insert(i);
-    }
+    // for (size_t i = nr; i < num_points; i++) {
+    //     inactive_tags.insert(i);
+    // }
 
     // TODO:run_single_iter
     diskann::DistanceL2 dist_cmp;
@@ -237,108 +233,30 @@ void DeleteReinsert(const std::string &data_path, const unsigned L_mem,
         metric, false, save_path);
     for (unsigned i = 0; i < iter_times; i++) {
         std::cout << "Run iteration " << i << std::endl;
-        // run_single_iter<T, TagT>(data_load, merge_insert, num_points, 100,
-        //                          aligned_dim);
-        std::cout << "Iteration " << i << "ended" << std::endl;
+        run_single_iter<T, TagT>(data_load, merge_insert, num_points, 100,
+                                 aligned_dim);
+        std::cout << "Iteration " << i << " ended" << std::endl;
     }
     // TODO: search
-    // sync_search_kernel(query, query_num, query_aligned_dim, recall_at,
-    // Lsearch,
-    //                    merge_insert, inactive_tags);
+    search_kernel<T, TagT>(query, query_num, query_aligned_dim, gt_ids,
+                           gt_dists, gt_dim, recall_at, Lsearch, merge_insert,
+                           active_tags);
 }
 
 template <typename T = float, typename TagT = uint32_t> void unit_test() {
     std::string data_path = "/home/chenyang.sun/FreshDiskANN_Baseline/build/"
                             "data/sift/sift_learn.fbin";
     std::string index_file = "/home/chenyang.sun/FreshDiskANN_Baseline/build/"
-                             "data/sift/disk_sift_disk.index";
+                             "data/sift/disk_disk.index";
     std::string truthset_file = "/home/chenyang.sun/FreshDiskANN_Baseline/"
                                 "build/data/sift/sift_query_learn_gt100";
     std::string query_file = "/home/chenyang.sun/FreshDiskANN_Baseline/build/"
                              "data/sift/sift_query.fbin";
     std::string save_path =
-        "/home/chenyang.sun/FreshDiskANN_Baseline/build/data/sift/disk_sift";
+        "/home/chenyang.sun/FreshDiskANN_Baseline/build/data/sift/disk";
     //
-    // FIXME:summary parameters
-    diskann::Parameters paras;
-    paras.Set<unsigned>("L_mem", 50);
-    paras.Set<unsigned>("R_mem", 32);
-    paras.Set<float>("alpha_mem", 1.2);
-    paras.Set<unsigned>("L_disk", 50);
-    paras.Set<unsigned>("R_disk", 32);
-    paras.Set<float>("alpha_disk", 1.2);
-    paras.Set<unsigned>("C", 160);
-    paras.Set<unsigned>("beamwidth", 5);
-    paras.Set<unsigned>("nodes_to_cache", 0);
-    paras.Set<unsigned>("num_search_threads", 2);
-    // TODO:run_single_iter
-    diskann::DistanceL2 dist_cmp;
-    diskann::Metric metric = diskann::Metric::L2;
-    std::string mem_prefix = save_path + "_mem";
-    std::string disk_prefix_in = save_path;
-    std::string disk_prefix_out = save_path + "_merge";
-    diskann::MergeInsert<T, TagT> merge_insert(
-        paras, 128, mem_prefix, disk_prefix_in, disk_prefix_out, &dist_cmp,
-        metric, false, save_path);
-    // FIXME:load truthset
-    unsigned *gt_ids = nullptr;
-    // uint32_t* gt_tags = nullptr; whether to use it
-    float *gt_dists = nullptr;
-    size_t gt_num, gt_dim;
-    diskann::load_truthset(truthset_file, gt_ids, gt_dists, gt_num, gt_dim);
-
-    // FIXME:load query
-    T *query = nullptr;
-    size_t query_num, query_dim, query_aligned_dim;
-    diskann::load_aligned_bin<T>(query_file, query, query_num, query_dim,
-                                 query_aligned_dim);
-    // check whether gt is corresponded with query
-    if (gt_num != query_num) {
-        std::cout
-            << "Error. Mismatch in number of queries and ground truth data"
-            << std::endl;
-        exit(0);
-    }
-    // FIXME:load data
-    T *data_load = NULL;
-    size_t num_points, dim, aligned_dim;
-    diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
-                                 aligned_dim);
-
-    // TODO:load tags
-    tsl::robin_set<TagT> active_tags, inactive_tags;
-    uint64_t *metadata;
-    size_t nr, nc;
-    diskann::load_bin<uint64_t>(index_file, metadata, nr, nc);
-    active_tags.clear();
-    inactive_tags.clear();
-    for (size_t i = 0; i < nr; i++) {
-        active_tags.insert(i);
-    }
-    for (size_t i = nr; i < num_points; i++) {
-        inactive_tags.insert(i);
-    }
-    // run single iteration
-    int iter_times = 1;
-    for (unsigned i = 0; i < iter_times; i++) {
-        std::cout << "Run iteration " << i << std::endl;
-        // run_single_iter<T, TagT>(data_load, merge_insert, num_points, 100,
-        //                          aligned_dim);
-        std::cout << "Iteration " << i << "ended" << std::endl;
-    }
-    // TODO: search
-    // sync_search_kernel(query, query_num, query_aligned_dim, recall_at,
-    // Lsearch,
-    //                    merge_insert, inactive_tags);
+    DeleteReinsert<T, TagT>(data_path, 50, 32, 1.2, 50, 32, 1.2, save_path,
+                            query_file, truthset_file, index_file, 1, 10000);
 }
 
 int main() { unit_test(); }
-#else
-./ tests / overall_performance float../../ main_DiskANN / DiskANN / build /
-    data / sift /
-    sift_learn.fbin 50 32 1.2 50 32 1.2 50000 10000 500 10000.. /../
-    main_DiskANN / DiskANN / build / data / true false../../ main_DiskANN /
-    DiskANN / build / data / sift / sift_learn.fbin../../ main_DiskANN /
-    DiskANN / build / data / sift / sift_query.fbin../../ main_DiskANN /
-    DiskANN / build / data / sift / sift_query_learn_gt100 10 20 5 1000
-#endif
