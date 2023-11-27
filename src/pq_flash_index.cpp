@@ -811,7 +811,7 @@ int PQFlashIndex<T, TagT>::load(const char *index_prefix, _u32 num_threads,
         diskann::cout << "Loading tags...";
         if (!this->single_index_file) {
             std::string tag_file = disk_index_file;
-            tag_file = tag_file + ".tags";
+            tag_file = tag_file;
             diskann::cout << "from " << tag_file << std::endl;
             this->load_tags(tag_file);
         } else {
