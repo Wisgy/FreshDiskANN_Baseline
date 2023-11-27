@@ -40,20 +40,7 @@ template <typename T, typename TagT>
 void search_kernel(T *query, size_t query_num, size_t query_aligned_dim,
                    unsigned *gt_ids, float *gt_dists, size_t gt_dim,
                    const int recall_at, _u64 L,
-                   diskann::MergeInsert<T, TagT> &index,
-                   tsl::robin_set<TagT> &active_tags) {
-    // print basic information
-    std::string recall_string = "Recall@" + std::to_string(recall_at);
-    std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS "
-              << std::setw(18) << "Mean Latency (ms)" << std::setw(12)
-              << "90 Latency" << std::setw(12) << "95 Latency" << std::setw(12)
-              << "99 Latency" << std::setw(12) << "99.9 Latency"
-              << std::setw(12) << recall_string << std::setw(12)
-              << "Mean disk IOs" << std::endl;
-    std::cout
-        << "==============================================================="
-           "==============="
-        << std::endl;
+                   diskann::MergeInsert<T, TagT> &index) {
     // prep for search
     std::vector<uint32_t> query_result_tags;
     std::vector<float> query_result_dists;
@@ -80,12 +67,23 @@ void search_kernel(T *query, size_t query_num, size_t query_aligned_dim,
     float mean_recall = 0.0f;
     mean_recall = diskann::calculate_recall(
         (unsigned)query_num, gt_ids, gt_dists, (unsigned)gt_dim,
-        query_result_tags.data(), (unsigned)recall_at, (unsigned)recall_at,
-        active_tags);
+        query_result_tags.data(), (unsigned)recall_at, (unsigned)recall_at);
     float mean_ios = (float)diskann::get_mean_stats(
         stats, query_num,
         [](const diskann::QueryStats &stats) { return stats.n_ios; });
     std::sort(latency_stats.begin(), latency_stats.end());
+    // print basic information
+    std::string recall_string = "Recall@" + std::to_string(recall_at);
+    std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS "
+              << std::setw(18) << "Mean Latency (ms)" << std::setw(12)
+              << "90 Latency" << std::setw(12) << "95 Latency" << std::setw(12)
+              << "99 Latency" << std::setw(12) << "99.9 Latency"
+              << std::setw(12) << recall_string << std::setw(12)
+              << "Mean disk IOs" << std::endl;
+    std::cout
+        << "==============================================================="
+           "==============="
+        << std::endl;
     std::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(18)
               << ((float)std::accumulate(latency_stats.begin(),
                                          latency_stats.end(), 0)) /
@@ -159,7 +157,9 @@ void run_single_iter(T *data_load, diskann::MergeInsert<T> &merge_insert,
     // TODO:insert
     insertion_kernel<T, TagT>(data_load, merge_insert, chg_pt, aligned_dim);
     // TODO:merge
+    // std::cout << merge_insert._disk_index->get_tags() << std::endl;
     merge_kernel<T, TagT>(merge_insert);
+    // std::cout << merge_insert._disk_index->get_tags() << std::endl;
 }
 
 template <typename T, typename TagT = uint32_t>
@@ -184,45 +184,12 @@ void DeleteReinsert(const std::string &data_path, const unsigned L_mem,
     paras.Set<unsigned>("beamwidth", beam_width);
     paras.Set<unsigned>("nodes_to_cache", 0);
     paras.Set<unsigned>("num_search_threads", 2);
-    // FIXME:load truthset
-    unsigned *gt_ids = nullptr;
-    float *gt_dists = nullptr;
-    size_t gt_num, gt_dim;
-    diskann::load_truthset(truthset_file, gt_ids, gt_dists, gt_num, gt_dim);
-
-    // FIXME:load query
-    T *query = nullptr;
-    size_t query_num, query_dim, query_aligned_dim;
-    diskann::load_aligned_bin<T>(query_file, query, query_num, query_dim,
-                                 query_aligned_dim);
-    // check whether gt is corresponded with query
-    if (gt_num != query_num) {
-        std::cout
-            << "Error. Mismatch in number of queries and ground truth data"
-            << std::endl;
-        exit(0);
-    }
-    // FIXME:load data
+    // load data
     T *data_load = NULL;
     size_t num_points, dim, aligned_dim;
     diskann::load_aligned_bin<T>(data_path.c_str(), data_load, num_points, dim,
                                  aligned_dim);
-
-    // TODO:load tags
-    tsl::robin_set<TagT> active_tags, inactive_tags;
-    TagT *metadata;
-    size_t nr, nc;
-    diskann::load_bin<TagT>(index_file, metadata, nr, nc);
-    active_tags.clear();
-    // inactive_tags.clear();
-    for (size_t i = 0; i < nr; i++) {
-        active_tags.insert(i);
-    }
-    // for (size_t i = nr; i < num_points; i++) {
-    //     inactive_tags.insert(i);
-    // }
-
-    // TODO:run_single_iter
+    // construct MergeInsert
     diskann::DistanceL2 dist_cmp;
     diskann::Metric metric = diskann::Metric::L2;
     std::string mem_prefix = save_path + "_mem";
@@ -231,16 +198,47 @@ void DeleteReinsert(const std::string &data_path, const unsigned L_mem,
     diskann::MergeInsert<T, TagT> merge_insert(
         paras, dim, mem_prefix, disk_prefix_in, disk_prefix_out, &dist_cmp,
         metric, false, save_path);
-    for (unsigned i = 0; i < iter_times; i++) {
-        std::cout << "Run iteration " << i << std::endl;
-        run_single_iter<T, TagT>(data_load, merge_insert, num_points, 100,
-                                 aligned_dim);
-        std::cout << "Iteration " << i << " ended" << std::endl;
+    // load query
+    T *query = nullptr;
+    size_t query_num, query_dim, query_aligned_dim;
+    diskann::load_aligned_bin<T>(query_file, query, query_num, query_dim,
+                                 query_aligned_dim);
+    // load truthset
+    unsigned *gt_ids = nullptr;
+    float *gt_dists = nullptr;
+    size_t gt_num, gt_dim;
+    diskann::load_truthset(truthset_file, gt_ids, gt_dists, gt_num, gt_dim);
+    // check whether gt is corresponded with query
+    if (gt_num != query_num) {
+        std::cout
+            << "Error. Mismatch in number of queries and ground truth data"
+            << std::endl;
+        exit(0);
     }
-    // TODO: search
+    // load tags
+    tsl::robin_set<TagT> active_tags, inactive_tags;
+    TagT *metadata;
+    size_t nr, nc;
+    diskann::load_bin<TagT>(index_file, metadata, nr, nc);
+    active_tags.clear();
+    inactive_tags.clear();
+    for (size_t i = 0; i < nr; i++) {
+        active_tags.insert(i);
+    }
+    for (size_t i = nr; i < num_points; i++) {
+        inactive_tags.insert(i);
+    }
+
+    // run_single_iter
+    // for (unsigned i = 0; i < iter_times; i++) {
+    //     std::cout << "Run iteration " << i << std::endl;
+    //     run_single_iter<T, TagT>(data_load, merge_insert, num_points, 100,
+    //                              aligned_dim);
+    //     std::cout << "Iteration " << i << " ended" << std::endl;
+    // }
+    // search
     search_kernel<T, TagT>(query, query_num, query_aligned_dim, gt_ids,
-                           gt_dists, gt_dim, recall_at, Lsearch, merge_insert,
-                           active_tags);
+                           gt_dists, gt_dim, recall_at, Lsearch, merge_insert);
 }
 
 template <typename T = float, typename TagT = uint32_t> void unit_test() {
